@@ -3,7 +3,7 @@ title: "Some Possible Modeling Aproaches for Ibis ROI"
 author: "Mike Arciero"
 date: "3/9/2022"
 output:
-  html_document:
+  github_document:
     toc: true
     toc_depth: 2
 ---
@@ -39,9 +39,9 @@ set.seed(1123)
 
 ## Overview
 
-We combine real and simulated data for illustration.  Model 
-
-the number of hospital or ER visits for patients, and subsequently cost and other statistics of interest, at both population and patient levels, across Ibis users vs non-users in given time period using data such as 
+We combine real and simulated data for illustration of a modeling framework for  
+the number of hospital and ER visits for patients, and subsequently cost and other statistics of interest, for users  of 
+Senscio Systems Ibis tablet device for self care management. We use data such as 
 
 * demographic - age, gender, geographic (city, town, zip code)
 * socioeconomic- income or financial class strata, 
@@ -77,7 +77,7 @@ CMS has tables defining the ICD 10 $\rightarrow$ HCC assignments and I've done a
 Our sample data  consists of 4539 individual  patients with a row for each visit containing IDC 10 codes.
 
 ``` {r, echo = F, include = FALSE}
-augusta_raw <- read_csv("data/augusta_2020.csv")
+augusta_raw <- read_csv("../data/augusta_2020.csv")
 
 ## get rid of spaces and also remove decimals in ICD codes, as the lookup table has none.
 augusta <- augusta_raw %>% rename_with(~ str_replace_all(., " ", "_"), "PATIENT NBR": "CPT 15") %>%
@@ -98,7 +98,7 @@ visit_df <- augusta %>% group_by(PATIENT_NBR) %>% summarize(count = n()) %>%
 augusta_vis <- cbind(visit_df[, 3], augusta)
 
 ## The HCC lookup table
-hcc <- read_csv("data/HCC_mappings_2020.csv")
+hcc <- read_csv("../data/HCC_mappings_2020.csv")
 colnames(hcc)[3] <- "HCC"
 hcc <- hcc %>% filter(!is.na(HCC))
 hcc$HCC <- as.factor(hcc$HCC)
