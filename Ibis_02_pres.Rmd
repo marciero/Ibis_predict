@@ -1,0 +1,690 @@
+---
+title: "Some Possible Modeling Aproaches for Ibis ROI"
+author: "Mike Arciero"
+date: "3/10/2022"
+output:
+  beamer_presentation: default
+  ioslides_presentation:
+    toc: yes
+    toc_depth: 2
+  slidy_presentation: default
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, 
+  warning = FALSE, 
+  message = FALSE,
+  dev = "png",
+  dpi = 150,
+  fig.align = "center",
+  comment = NA
+)
+
+
+library(tidyverse)
+library(rstan)
+library(rstanarm)
+library(bayesplot)
+library(bayesrules)
+library(broom)
+library(broom.mixed)
+# library(rethinking)
+library(janitor)
+
+theme_set(bayesplot::theme_default())
+
+# seed for R's pseudo-RNGs, not Stan's
+set.seed(1123) 
+
+```
+
+## Overview
+
+Real and fake data for illustration. 
+
+Model hospital or ER visits ~ various predictors
+
+* demographic - age, gender, geographic (city, town, zip code)
+* socioeconomic- income or financial class strata, 
+* health data - ICD 10  and procedure codes, medications, etc. 
+* thousands of predictors possible
+* feature engineering 
+* regularization
+* likelihood encoding
+* principle component analysis
+
+
+## Modeling approaches
+
+Poisson or Negative Binomial regression
+
+ `visits` $\sim$  other predictors 
+
+We primarily use a Bayesian approach where possible.
+
+## Bayesian modeling
+
+* models likelihood of parameters given the data (which we know), rather the other around around as with NHST 
+* distributions rather than point estimates, for all parameters, not just outcome variable
+* ability to model any function of parameters or outcome variables, such as cost for given number of visits.
+* ability to easily examine changes in outcome with change in a single predictor; eg how the $distribution$ of `visits` varies between users and non users of Ibis for patients of a given gender, financial class, medical profile, etc. 
+* computationally expensive
+
+---
+
+### Condition categories
+
+* CMS HCC (hierarchical condition categories)  ICD 10 -> HCC 
+* clinical relationships of diagnoses 
+* risk adjustment for Medicare Advantage plans. 
+* Potential abuses from "gaming"...
+
+
+## Examples with real and fake data
+
+``` {r, echo = F, include = FALSE}
+augusta_raw <- read_csv("data/augusta_2020.csv")
+
+## get rid of spaces and also remove decimals in ICD codes, as the lookup table has none.
+augusta <- augusta_raw %>% rename_with(~ str_replace_all(., " ", "_"), "PATIENT NBR": "CPT 15") %>%
+    mutate(across(DIAG_1:DIAG_15, ~str_remove(., "\\.")))
+
+nrow(augusta)
+n_distinct(augusta$PATIENT_NBR)
+
+augusta %>% group_by(PATIENT_NBR) %>% summarize(count = n())  %>%
+    ggplot(aes(count)) +
+    geom_histogram(aes(y = ..density..), binwidth = 1, color = "white")
+
+### create column with visit number
+visit_df <- augusta %>% group_by(PATIENT_NBR) %>% summarize(count = n()) %>%
+    mutate(visit = map(count, function(i){c(1:i)})) %>%
+    unnest(visit)
+
+augusta_vis <- cbind(visit_df[, 3], augusta)
+
+## The HCC lookup table
+hcc <- read_csv("data/HCC_mappings_2020.csv")
+colnames(hcc)[3] <- "HCC"
+hcc <- hcc %>% filter(!is.na(HCC))
+hcc$HCC <- as.factor(hcc$HCC)
+hcc$Code <- as.factor(hcc$Code)
+
+augusta_long <- augusta_vis %>% pivot_longer(DIAG_1:DIAG_15, names_to = "diagnosis_no", values_to = "code") %>%
+         select(PATIENT_NBR, visit, FIN_CLASS, DRG, diagnosis_no, code) %>% select(-DRG) %>%
+    filter(!is.na(code))
+augusta_long$code <- as.factor(augusta_long$code)
+
+## some codes mapped to more that one HCC.
+augusta_long_hcc <- augusta_long %>% left_join(hcc, by = c("code" = "Code")) # %>%
+    ##  filter(!is.na(HCC))  ## previously we dropped records with no HCC.
+
+ n_distinct(augusta_long_hcc$HCC)
+
+ n_distinct(augusta_long_hcc$HCC)
+
+ ### Pick out the distinct HCC for each patient, number of distinct HCCs, number of visits, generate age based on
+ ### number of hcc categories, generate financial/income, gender.
+
+ N= nrow(augusta_long_hcc %>% group_nest(PATIENT_NBR, FIN_CLASS))
+ set.seed(123)
+ augusta_unique_hcc <- augusta_long_hcc %>% group_nest(PATIENT_NBR, FIN_CLASS) %>%
+     mutate(HCC_unique = map(data, ~unique(.x$HCC))) %>%
+     mutate(visits = map_int(data, ~max(.x$visit))) %>%
+   mutate(hcc_conds = map_int(HCC_unique, ~length(.) - sum(is.na(.x)))) %>%  ## subtracts NA, which were counted distinct HCC
+     mutate(age = 65 + 2*hcc_conds + rnorm(N, 0 , sd = 5))  %>%   ## fake data
+     mutate(across(age, ~floor(.x))) %>%
+     mutate(gender = as.factor(sample(c("M", "F", "NB"), N, prob = c(0.49, 0.49, 0.02),  replace = TRUE)))%>%  ## more fake data
+     mutate(financial = ordered(sample(c(1:3), N, replace = TRUE)))
+
+```
+```{r echo = FALSE}
+head(augusta_raw)
+```
+
+## CMS HCC table
+
+```{r, echo=FALSE}
+slice_sample(hcc, n = 10)
+```
+
+## Data prep
+* Map each patient's diagnosis codes to HCCs. 
+* Compute and create columns for the number of unique HCC codes and the number of visits. 
+* Add fake `gender`, `age`, and `financial` predictor data. The `age` was simulated such that older patients had higher probability of higher hcc counts.
+
+---
+
+### A cleaned and formatted data set
+
+``` {r, echo = FALSE}
+head(augusta_unique_hcc)
+```
+The unique codes are nested in the corresponding column above. 
+
+---
+
+If we expand, we see that Patient 001 has three HCC codes: 111, 185, and 112.
+```{r, echo = FALSE}
+augusta_unique_hcc %>% 
+    unnest(HCC_unique) %>% head()
+```
+This data set has 4539 individual patients. 
+
+## Plots of visits and HCC distributions.
+
+
+``` {r, echo = FALSE}
+augusta %>% group_by(PATIENT_NBR) %>% summarize(count = n())  %>%
+    ggplot(aes(count)) +
+    geom_histogram(aes(y = ..density..), binwidth = 1, color = "white") +
+    xlim(c(0,20)) +
+    labs(x = "visit count")
+```
+
+---
+
+### Plots of HCCs. There are 86 of them here. 
+
+```{r, echo = FALSE}
+augusta_unique_hcc %>% unnest(HCC_unique) %>% na.omit() %>%
+     ggplot(aes(HCC_unique)) + geom_bar()
+
+```
+
+Difficult to see here but the most common is 85, which contains a range of ICD 10 codes beginning with A and I, under the general category of congestive heart failure. HCC 19, "diabetes without complication" and 96, "heart arhythmias",  are also common.
+
+---
+
+## Counts of patient HCC counts
+
+```{r, echo =FALSE}
+augusta_unique_hcc %>%
+       ggplot() + geom_bar(aes(hcc_conds)) +
+    labs( x = "patient HCC counts")
+   
+```
+
+## Modeling HCC counts.
+
+Before we look at `visit` data, we model the number of patient HCCs, `hcc_conds`, using using a Poisson regression, which are often used to model count data. 
+$$
+ \log \mu_i = \alpha + \beta_1 \times \rm{age}_i + \beta_2 \times \rm{gender}_i \\
+$$
+
+* $i$ represents the age and gender of the $i^{th}$ patient 
+* Poisson characterized by a single parameter, the mean, $\mu$, which is simply the average (i.e. the mean) number of hcc counts. 
+
+---
+
+### Other possible Poisson models
+
+For example, define model coefficients for each gender $j$. Here are two examples 
+
+$$
+\log \mu_{i,j} = \alpha_{j} + \beta_{1,j} \times \rm{age}_i  \\
+\log \mu_{i,j} = \alpha_0 + \alpha_{j} + (\beta_{0} + \beta_{1,j}) \times \rm{age}_i \\
+$$
+These would appropriate if the amount of increase of `hcc_count` with `age` appeared to depend on `gender`. 
+Hierarchical models exploit any group structure but also pool results between groups.
+
+
+
+The modeling process estimates the coefficients $\alpha, \beta_1,$ and $\beta_2$.  Bayesian methods yield a probability distribution for each of these coefficients. The number of HCCs for a patient is then viewed as a random process with possible outcomes 0, 1, 2, 3,..., each with a specified probability. Generally we write
+
+$$
+ \textrm{hcc_conds}_i \sim \textrm{Poisson}(\mu_i) \\
+$$
+
+---
+
+### Example- an "intercept only" model; that is with $\alpha$ but no predictors.  
+
+```{r, echo = FALSE, include = FALSE}
+hcc_pois_model <- "
+   data {
+   int N;
+   int hcc_count[N];
+   }
+   parameters {
+   real<lower = 0> alpha;
+   }
+   model {
+    alpha ~ normal(log(4.6), 1);
+    hcc_count ~ poisson_log(alpha);
+   }
+      generated quantities {
+       int y_rep[N];
+       for (i in 1:N)
+    y_rep[i] = poisson_log_rng(alpha);
+    }
+"
+hcc_pois_sim <- stan(model_code = hcc_pois_model, data = list(N = nrow(augusta_unique_hcc),
+                                                     hcc_count = augusta_unique_hcc$hcc_conds),
+               chains = 4, iter = 1000, seed = 84732
+                )
+```
+
+```{r, echo=FALSE, out.height= "50%"}
+posterior1 <- extract(hcc_pois_sim)
+tidy(hcc_pois_sim) %>% head()
+mcmc_dens(hcc_pois_sim, pars = "alpha")
+```
+
+---
+
+### Intercept-only model
+
+* distribution for $\alpha$.
+* distribution of posterior predictive samples of `hcc_conds` - labelled `y_rep[]`.  
+* contrast to point estimates resulting from frequentist methods. 
+* 4000 samples of all parameters and predictions
+* Note that this is on the log scale, so to get the mean we find 
+```{r, echo=T}
+exp(1.26)
+```
+
+which agrees with the mean number of HCCs per patient for this data set, which is about 3.5.
+
+
+---
+
+### Post predictive checks
+
+Compare the distribution of `hcc_conds` from the data with those from the posterior samples generated by the model. Here, the former are labeled $y$ and the latter, $y_rep$.
+```{r, echo = FALSE}
+y_rep <- as.matrix(hcc_pois_sim, pars = "y_rep")
+ppc_dens_overlay(y = augusta_unique_hcc$hcc_conds, yrep = y_rep[1:200, ])
+```
+
+We can see that it is not too good. 
+
+* underestimates the number of zeros, and overestimates 2 through 6, and underestimates larger values. 
+* "underdispersion" is common (as is overdispersion). 
+* Poisson is characterized by a single parameter, mean = variance
+
+---
+
+### Negative Binomial model
+
+```{r, echo = FALSE, include = FALSE}
+hcc_nb_model <- "
+   data {
+   int N;
+   int hcc_count[N];
+   }
+   parameters {
+   real<lower = 0> alpha;
+   real<lower = 0> inv_phi; // variance is lambda + lambda^2/phi
+   }
+   transformed parameters {
+     real phi = inv(inv_phi);
+   }
+   model {
+    alpha ~ normal(log(3.5), 1);
+    inv_phi ~ normal(0,1);
+    hcc_count ~ neg_binomial_2_log(alpha, phi);
+   }
+   generated quantities {
+       int y_rep[N];
+       for (i in 1:N)
+    y_rep[i] = neg_binomial_2_log_rng(alpha, phi);
+    }
+"
+hcc_nb_sim <- stan(model_code = hcc_nb_model, data = list(N = nrow(augusta_unique_hcc),
+                                                         hcc_count = augusta_unique_hcc$hcc_conds),
+                chains = 4, iter = 2000, seed = 84732 
+)
+
+```
+
+```{r, echo = FALSE}
+tidy(hcc_nb_sim) %>% head()
+mcmc_dens(hcc_nb_sim, pars = c("alpha", "phi"))
+
+```
+You can see the model estimates an additional shape parameter, $\phi$, which controls the standard deviation.
+
+---
+
+### Post predictive check
+
+```{r, echo = FALSE}
+y_rep <- as.matrix(hcc_nb_sim, pars = "y_rep")
+ppc_dens_overlay(y = augusta_unique_hcc$hcc_conds, yrep = y_rep[1:200, ])
+```
+
+---
+
+We can see the negative binomial does a much better job. As further check we can how the distribution of proportions for different values of hcc count compares with those in the data. For example about 9.3% percent of the patients had zero `hcc_conds`. We can compare that to the distribution of zeros in the posterior samples generated by the model.
+
+---
+
+```{r, echo = FALSE}
+prop <- function(x) mean(x == 0)
+ppc_stat(y = augusta_unique_hcc$hcc_conds, yrep = y_rep, stat = "prop") + labs(title = "Proportion of hcc count = 0 in posterior samples compared to the data")
+```
+
+---
+
+```{r, echo = FALSE}
+prop <- function(x) mean(x == 2)
+ppc_stat(y = augusta_unique_hcc$hcc_conds, yrep = y_rep, stat = "prop") + labs(title = "Proportion of hcc count = 2 in posterior samples compared to the data")
+```
+
+--- 
+
+```{r, echo = FALSE}
+prop <- function(x) mean(x == 5)
+ppc_stat(y = augusta_unique_hcc$hcc_conds, yrep = y_rep, stat = "prop") + labs(title = "Proportion of hcc count = 5 in posterior samples compared to the data")
+```
+
+
+## Modeling `visits`.
+
+Now we try modeling visits with various predictor variables. A real model may have thousands of predictors, but we can illustrate the approach with just one, the hcc counts we just considered. Then we will add fake ibis use data to the model. The visit data is a bit different than the hcc counts as there are no zeros present in the data set that I have. Thus, both Poisson and negative binomial may be problematic. In fact, with some care, truncated versions of these may be used. We do not do this below, yet.
+
+---
+
+### Poisson model
+
+Recall the distribution of visits
+
+```{r, echo = FALSE}
+df <- augusta_unique_hcc
+augusta_unique_hcc %>% ggplot(aes(visits)) + geom_bar()
+```
+
+---
+
+We try the Poisson regression with the single predictor `hcc_counts`. We see there is a weak relationship
+
+```{r, echo = FALSE}
+augusta_unique_hcc %>% ggplot(aes(hcc_conds, visits)) + geom_point() +
+    geom_smooth(method = lm, se = F)
+```
+
+---
+
+In fact, a non-Bayesian/frequentist Poisson regression will conclude that the relationship is "statistically significant": 
+
+```{r, echo = FALSE}
+p.0.1 <- glm(visits ~ hcc_conds, df, family = poisson)
+## summary(p.0.1)
+tidy(p.0.1)
+
+```
+
+---
+
+### Remarks on interpreting model coefficients
+
+Interpreting the coefficients is not as direct as it is with ordinary linear regression models; that is, with identity link function. Its not too bad here- the link is the log function so the effects are multiplicative. Consider the mean for `hcc_conds`. 
+
+```{r, echo = T}
+
+exp(0.100)
+
+```
+
+
+So with every increase in `hcc_conds`, we get a bit more than a 10% jump in mean number of visits. Interpreting the coefficients is often not so straightforward, depending on the model. Even here, we assume that we are holding other predictors constant, which does not happen in real life. 
+
+Bayesian approaches skirt these issues entirely by simply examining the posterior distribution at different levels of the predictors. We will see how this is done.
+
+---
+
+### The Model
+
+$$
+\begin{align*}
+\textrm{visits}_i & \sim \textrm{Poisson}(\mu_{i}) \\
+\log \mu_{i} & = \alpha +\beta \times \textrm{hcc_count}_i \\
+\end{align*}
+$$
+There are also priors on the parameters that are part of the model. We skip discussion of that for now but happy to discuss.
+
+---
+
+### Model results.
+Remembering that these values are on the log scale, we see that these result are consistent with the non-bayes.
+
+```{r, echo = FALSE, include=FALSE}
+vm.2 <- stan_glm(visits ~ hcc_conds, df,
+                 family = poisson,
+                  prior_intercept = normal(0, 1, autoscale = T),
+                 prior = normal(1, 1, autoscale = T),
+                 prior_aux = exponential(1, autoscale = TRUE),
+                 chains = 4, iter = 4000, seed = 84732 
+                 )
+
+## prior_summary(vm.1)
+```
+
+```{r}
+tidy(vm.2)
+```
+
+---
+
+## Densities for the coefficients
+
+
+```{r, echo = FALSE}
+mcmc_dens(vm.2)
+```
+
+----
+
+We can easily do things like find the probability that coeffs lie in $any$ given interval. Moreover, we can generate distributions for any statistic computed from the data and parameters. 
+
+
+---
+
+For example, we can compare the likelihood that a person with 10  `hcc_conds` has  more than 4 visits, to that of a person with 5 hcc's. 
+
+$$
+\frac{P(\rm{vists} > 4 | \rm{hcc} = 10)}{P(\rm{vists} > 4 | \rm{hcc} = 5)}
+$$
+
+
+```{r, echo = TRUE}
+set.seed(84732)
+pp <- posterior_predict(vm.2, newdata = data.frame(hcc_conds = c(10, 5))) %>%
+    as.data.frame()
+mean(pp$"1" > 4)/mean(pp$"2" > 4)
+```
+
+So a person with 10 hcc is over three times as likely to have more than 5 visits than a person with only 5 hcc.
+
+---
+
+### Posterior check, as we did with previous last models.
+
+```{r, echo = FALSE}
+pp_check(vm.2) +
+    xlab("visits") + xlim(-10, 20)
+```
+
+We can see the problem with the zero values, and also the same dispersion issue we saw before. We put this aside for now...
+
+## More fake data
+
+We add fake Ibis indicator variable to our data to represent use of the device or not.
+
+* assigned randomly,
+* stack the deck to make the use more likely for those with less than 5 hcc count. We do a 65/45 split.
+
+```{r, echo = FALSE}
+ibis_fake <- df %>% mutate(wt = case_when(visits < 5 ~ 0.65,
+                                          visits >= 5 ~ 0.45)) %>%
+    group_by(1:n()) %>%
+    mutate(ibis = sample(c(0, 1), size = 1, replace = TRUE, prob =  c(1-wt, wt))) %>%
+    mutate(ibis_idx = ibis +1) %>% ungroup()
+glimpse(ibis_fake)
+```
+ 
+ 
+---
+
+### Distribution of ibis use
+
+```{r, echo = FALSE}
+ibis_fake %>% filter(visits <= 10) %>%
+    ggplot(aes(visits)) +
+    geom_bar(aes(fill = as.factor(ibis)), position = "fill") +
+    scale_x_discrete(limits = factor(c(1:10)))
+```
+
+---
+
+
+```{r, echo = FALSE}
+ibis_fake %>% ggplot(aes(hcc_conds, visits)) + geom_point(aes(color = as.factor(ibis))) +
+    geom_smooth(aes(color = as.factor(ibis)),method = lm, se = F)
+```
+
+We can see the slight interaction between Ibis and hcc counts as evidenced by the different slopes for  the 
+linear regression lines in each case
+
+----
+
+We can also check the overall mean of `visits` with `ibis` vs not.
+
+```{r, echo = FALSE}
+ibis_fake %>% group_by(ibis) %>% summarize(ave_visits = mean(visits))
+```
+
+It turns out the difference is "statistically significant" in the NHST sense. 
+
+```{r}
+oneway.test(ibis_fake$visits ~ ibis_fake$ibis)
+```
+
+---
+
+### The model is now
+
+
+$$
+\begin{align*}
+\textrm{visits}_i & \sim \textrm{Poisson}(\mu_{i}) \\
+\log \mu_{i} & = \alpha +\beta_{hcc} \times \textrm{hcc_count}_i +\beta_{ibis} \times \textrm{ibis}_i \\
+\end{align*}
+$$
+
+---
+
+### As before, we can check the frequentist Poisson regression model
+
+```{r, echo = FALSE}
+p.2.0 <- glm(visits ~ ibis + hcc_conds, ibis_fake,
+             family = poisson)
+tidy(p.2.0, exponentiate = TRUE)
+```
+
+And now the Bayesian model
+
+```{r, echo = FALSE, include = FALSE}
+
+p.2.rstn <- stan_glm(visits ~  ibis + hcc_conds, ibis_fake,
+                               family = poisson,
+                               prior_intercept = normal(0, 1, autoscale = T),
+                                prior = normal(1, 1, autoscale = T),
+                               prior_aux = exponential(1, autoscale = TRUE),
+                               chains = 4, iter = 2000, seed = 84732 
+)
+
+```
+
+```{r, echo = T}
+tidy(p.2.rstn, exponentiate = TRUE)
+exp(0.733)
+exp(-0.270)
+exp(0.097)
+```
+
+Again agreeing with the point estimates above.
+
+---
+
+### Examining `visits` across different strata of the predictors
+
+Patients with 5 hcc conditions.
+
+```{r, echo = FALSE}
+set.seed(84732)
+pp <- posterior_predict(p.2.rstn, newdata = data.frame(ibis = c(0,1), hcc_conds = c(5,5))) %>%
+     as.data.frame()
+colnames(pp) <- c("ibis_no", "ibis_yes")
+pp %>% pivot_longer(c(1,2), names_to = "ibis", values_to = "visits") %>%  ggplot() +
+        geom_histogram(aes(visits, fill = ibis), position = "dodge") +
+    labs(title = "Distribution of visits for five hcc conditions")
+
+```
+
+---
+
+### Likelihood ratios
+
+We can see that after three visits the non users dominate. We can quantify this with the likelihood ratio
+
+$$
+\frac{P(\rm{vists} > 3 | \rm{hcc} = 5, \rm{ibis} = no)}{P(\rm{vists} > 3 | \rm{hcc} = 5, \rm{ibis} = yes)}
+$$
+
+
+```{r, echo = T}
+mean(pp$ibis_no > 3)/mean(pp$ibis_yes > 3)
+```
+
+So non-users with five hcc are about 71% more likely to have more than three visits. As a remark, we stress that this statistic is itself a random variable and our value is but one outcome. So in practice we would simulate it many times and generate a distribution. Then we could generate credible intervals and p-value type probabilities for this likelihood
+
+---
+
+If we repeat the above with ten hcc conditions we obtain the ratio
+
+```{r,  echo = FALSE}
+set.seed(84732)
+pp2 <- posterior_predict(p.2.rstn, newdata = data.frame(ibis = c(0,1), hcc_conds = c(10,10))) %>%
+     as.data.frame()
+colnames(pp2) <- c("ibis_no", "ibis_yes")
+```
+
+```{r, echo = T}
+mean(pp2$ibis_no > 3)/mean(pp2$ibis_yes > 3)
+```
+
+
+That the likelihood ratio seems to be dependent on the the number of hcc suggests that there is an interaction between `hcc_count` and `ibis`. We saw that above in the plot of `visits` vs `hcc_count`, stratified by `ibis`.
+
+
+
+## Things to consider
+
+* More predictors
+* ordering of the HCC
+
+
+## Things to consider
+
+* Hierarchical models. These take advantage of group structure (all women, all Ibis users, etc)  and model each separately, with partial pooling for the entire population. For example, with group indicator $j$ the model might look like
+
+$$
+\begin{align*}
+\textrm{visits}_i & \sim \textrm{Poisson}(\mu_{i}) \\
+\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times \textrm{hcc_count}_i +\beta_{ibis, j} \times \textrm{ibis}_i \\
+\end{align*}
+$$
+
+## Things to consider
+
+* propensity score and inverse probability of treatment weighting methods  for comparison populations. Such techniques match patients with similar profiles to control confounding and thus mimic randomized controlled studies.
+* other diagnostic/condition categorise- DRG, ACG, CRG, etc.
+* likelihood encodings for ICD 10 or for condion categories
+* truncated distributions. To handle non zero data.
+* That hospital or ER data will not have zero values  is itself a problem as it is selection bias. 
+* interaction terms
+* Other model approaches- tree-based, neural nets, etc.
+
