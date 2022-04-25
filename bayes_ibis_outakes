@@ -1,0 +1,43 @@
+
+\input{preamble_2}
+\input{defs}
+\begin{document}
+
+
+{\bf A short non-rigorous overview of Bayesian modeling}
+
+The Bayesian approach arises from Bayes' Theorem from Stats 101. In its simplest form it can be expressed in terms of the conditional probabilities of events $A$ and $B$.
+\beq \label{BR}
+  P(A | B) = \frac{P(B | A) P(A)}{P(B)}
+\eeq
+This is Bayes Rule.
+Now if $\{A_j\}_{j = 1}^{n}$ are a disjoint collection of events whose union of events is the entire sample space, then
+
+$$
+P(\cup_j A_j) = \sum_{j=1}^n P(A_j) = 1 and we can write, using the law of total probability,
+$$
+
+$$
+P(B) = \sum{j=1}^n P(B | A_j) P(A_j)
+$$
+
+Together with (\ref{BR}), this gives Bayes' Theorem
+\beq \label{BT}
+  P(A_i | B) = \frac{P(B | A_i) P(A)}{\sum_{j=1}^n P(B | A_j) P(A_j)}
+\eeq
+
+If the distribution of data $Y$ depends on a set of parameters $\theta$ we can think of the probability density of $Y$ as being conditioned on $\theta$ and write $f(Y | \theta)$. (Recall that in the Bayesian framework, the $\theta$ are considered random variables.) Bayes' Theorem then states that the distribution of $\theta$ give the data $X$ is
+
+$$
+f(\theta | Y) = \frac{f(\theta) f(Y | \theta)}{\int f(Y | \theta) f(\theta) d\theta }}\\
+$$
+(For notational concision it is common to use the same $f$ without, eg, subscripts, to denote all the densities here because their arguments make clear which densities they are.) If you like you can think of the integrals as sums, as they are for discrete distributions.  Here, $f(\theta)$ is some $prior$ joint distribution of the $\theta$. The denominator is just a normalizing constant and often we write
+$$
+f(\theta | Y) \propto f(\theta) f(Y | \theta)\\
+$$
+
+What are the $f$ and what gets plugged in for $\theta$? The $f(\theta)$ is a prior distribution on the $\theta.
+In our case, the data are the data we have and the parameters $\theta$ are determined by the type of model we use; typically coefficients on predictors for (generalized) linear models. Once we have the "posterior" distributions for the parameters in hand, we can generate distributions for predictions of outcome variables and other statistics.
+
+In practice, usually neither analytical nor numerical evaluation of the posterior density is  possible or practical, so the posterior samples are generated via Markov Chain Monte Carlo. That is where the computational expense comes in.
+
