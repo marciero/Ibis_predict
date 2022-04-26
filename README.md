@@ -1,4 +1,4 @@
-Some Possible Modeling Aproaches for Ibis ROI
+A Bayesian framework for modeling hospital visits
 ================
 Mike Arciero
 3/9/2022
