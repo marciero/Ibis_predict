@@ -1,4 +1,4 @@
-Some Possible Modeling Aproaches for Ibis ROI
+A Bayesian framework for modeling hospital visits
 ================
 Mike Arciero
 3/9/2022
@@ -50,7 +50,7 @@ We primarily use a Bayesian approach where possible.
 -   ability to model any function of parameters or outcome variables,
     such as cost for given number of visits.
 -   ability to easily examine changes in outcome with change in a single
-    predictor; eg how the *d**i**s**t**r**i**b**u**t**i**o**n* of
+    predictor; eg how the distribution of
     `visits` varies between users and non users of Ibis for patients of
     a given gender, financial class, medical profile, etc.
 -   computationally expensive
