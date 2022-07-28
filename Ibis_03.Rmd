@@ -1,6 +1,6 @@
 ---
 title: "Some Possible Modeling Aproaches for Ibis ROI"
-author: "Mike Arciero"
+author: "Michael Arciero"
 date: "3/9/2022"
 output:
   github_document:
