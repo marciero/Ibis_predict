@@ -1,4 +1,4 @@
-A Bayesian framework for modeling hospital visits
+Some Possible Modeling Aproaches for Ibis ROI
 ================
 Mike Arciero
 3/9/2022
@@ -50,7 +50,7 @@ We primarily use a Bayesian approach where possible.
 -   ability to model any function of parameters or outcome variables,
     such as cost for given number of visits.
 -   ability to easily examine changes in outcome with change in a single
-    predictor; eg how the distribution of
+    predictor; eg how the *d**i**s**t**r**i**b**u**t**i**o**n* of
     `visits` varies between users and non users of Ibis for patients of
     a given gender, financial class, medical profile, etc.
 -   computationally expensive
@@ -186,17 +186,14 @@ indicator variables.
 
 The predicted mean number of visits for patient *i* would then be given
 by the Posson probability mass/distribution:
-
 $$
  p(x = k) = \\frac{\\mu_i^k e^{-\\mu_i}}{k!}
 $$
-
 where
 
 $$
  \\mu_i = \\exp(\\alpha + \\beta_1 \\times \\rm{age}\_i + \\beta_2 \\times \\rm{gender}\_i)
 $$
-
 Note that the exponential function “undoes” the logarithm. There are
 many ways to model a given process. For example we can define model
 coefficients for each gender *j*.
