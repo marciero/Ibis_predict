@@ -186,14 +186,17 @@ indicator variables.
 
 The predicted mean number of visits for patient *i* would then be given
 by the Posson probability mass/distribution:
+
 $$
  p(x = k) = \\frac{\\mu_i^k e^{-\\mu_i}}{k!}
 $$
+
 where
 
 $$
  \\mu_i = \\exp(\\alpha + \\beta_1 \\times \\rm{age}\_i + \\beta_2 \\times \\rm{gender}\_i)
 $$
+
 Note that the exponential function “undoes” the logarithm. There are
 many ways to model a given process. For example we can define model
 coefficients for each gender *j*.
