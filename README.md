@@ -1,6 +1,6 @@
 Some Possible Modeling Aproaches for Ibis ROI
 ================
-Mike Arciero
+Michael Arciero
 3/9/2022
 
 -   [Overview](#overview)
