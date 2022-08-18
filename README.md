@@ -187,21 +187,24 @@ indicator variables.
 
 The predicted mean number of visits for patient *i* would then be given
 by the Posson probability mass/distribution:
+
 $$
  p(x = k) = \frac{\mu_i^k e^{-\mu_i}}{k!}
 $$
+
 where
 
 $$
- \mu_i = \exp(\alpha + \beta_1 \times \rm{age}_i + \beta_2 \times \rm{gender}_i)
+ \mu_i = \exp(\alpha + \beta_1 \times {age}_i + \beta_2 \times {gender}_i)
 $$
+
 Note that the exponential function “undoes” the logarithm. There are
 many ways to model a given process. For example we can define model
 coefficients for each gender *j*.
 
 $$
-\log \mu_{i,j} = \alpha_{j} + \beta_{1,j} \times \rm{age}_i  \\
-\log \mu_{i,j} = \alpha_0 + \alpha_{j} + (\beta_{0} + \beta_{1,j}) \times \rm{age}_i
+\log \mu_{i,j} = \alpha_{j} + \beta_{1,j} \times \{age}_i  \\
+\log \mu_{i,j} = \alpha_0 + \alpha_{j} + (\beta_{0} + \beta_{1,j}) \times {age}_i
 $$
 
 These would appropriate if the amount of increase of `hcc_count` with
