@@ -282,7 +282,7 @@ supported.
 We will write
 
 $$
- {hcc\_ conds}_i  \sim {Poisson}(\mu_i)
+ hcc \ conds_i  \sim {Poisson}(\mu_i)
 $$
 
 to indicate that the number of hcc conditions `hcc_conds` is distributed
