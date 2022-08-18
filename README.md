@@ -177,8 +177,9 @@ must be positive, and we typically use the logarithm. For example if we
 used `age` and `gender` as predictors we would write
 
 $$
- \log \mu_i = \alpha + \beta_1 \times \rm{age}_i + \beta_2 \times \rm{gender}_i 
+ \log \mu_i = \alpha + \beta_1 \times {age}_i + \beta_2 \times {gender}_i 
 $$
+
 Where the index *i* represents the age and gender of the
 *i*<sup>*t**h*</sup> patient in the data record. One typically codes
 categorical variables with a small number of levels as a “dummy”
