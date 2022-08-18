@@ -50,7 +50,7 @@ We primarily use a Bayesian approach where possible.
 -   ability to model any function of parameters or outcome variables,
     such as cost for given number of visits.
 -   ability to easily examine changes in outcome with change in a single
-    predictor; eg how the *d**i**s**t**r**i**b**u**t**i**o**n* of
+    predictor; eg how the *distribution* of
     `visits` varies between users and non users of Ibis for patients of
     a given gender, financial class, medical profile, etc.
 -   computationally expensive
@@ -177,7 +177,7 @@ must be positive, and we typically use the logarithm. For example if we
 used `age` and `gender` as predictors we would write
 
 $$
- \\log \\mu_i = \\alpha + \\beta_1 \\times \\rm{age}\_i + \\beta_2 \\times \\rm{gender}\_i 
+ \log \mu_i = \alpha + \beta_1 \times \rm{age}_i + \beta_2 \times \rm{gender}_i 
 $$
 Where the index *i* represents the age and gender of the
 *i*<sup>*t**h*</sup> patient in the data record. One typically codes
@@ -187,20 +187,20 @@ indicator variables.
 The predicted mean number of visits for patient *i* would then be given
 by the Posson probability mass/distribution:
 $$
- p(x = k) = \\frac{\\mu_i^k e^{-\\mu_i}}{k!}
+ p(x = k) = \frac{\mu_i^k e^{-\mu_i}}{k!}
 $$
 where
 
 $$
- \\mu_i = \\exp(\\alpha + \\beta_1 \\times \\rm{age}\_i + \\beta_2 \\times \\rm{gender}\_i)
+ \mu_i = \exp(\alpha + \beta_1 \times \rm{age}_i + \beta_2 \times \rm{gender}_i)
 $$
 Note that the exponential function “undoes” the logarithm. There are
 many ways to model a given process. For example we can define model
 coefficients for each gender *j*.
 
 $$
-\\log \\mu\_{i,j} = \\alpha\_{j} + \\beta\_{1,j} \\times \\rm{age}\_i  \\\\
-\\log \\mu\_{i,j} = \\alpha_0 + \\alpha\_{j} + (\\beta\_{0} + \\beta\_{1,j}) \\times \\rm{age}\_i
+\log \mu_{i,j} = \alpha_{j} + \beta_{1,j} \times \rm{age}_i  \\
+\log \mu_{i,j} = \alpha_0 + \alpha_{j} + (\beta_{0} + \beta_{1,j}) \times \rm{age}_i
 $$
 
 These would appropriate if the amount of increase of `hcc_count` with
@@ -221,7 +221,7 @@ the hcc counts and genders- Bayes’ Theorem then gives a “posterior
 distribution” for the parameters:
 
 $$
- p(\\theta \| x) = \\frac{p(\\theta) p(x \| \\theta)}{\\int p(\\theta) p(x \| \\theta) \\ d\\theta}
+ p(\theta | x) = \frac{p(\theta) p(x | \theta)}{\int p(\theta) p(x | \theta) \ d\theta}
 $$
 
 The *p*(⋅) are probability densities or mass functions for the
@@ -232,7 +232,7 @@ from the Poisson distribution above, now with the dependence on *θ*-in
 our case (*α*,*β*) - made explicit. The denominator is essentially a
 normalization constant which results from integration over the
 multidimensional parameter space, and it is conventional to write
-*p*(*θ*\|*x*) ∝ *p*(*θ*)*p*(*x*\|*θ*)
+$$p(θ|x) \propto p(θ)p(x|θ)$$
 
 Priors on coefficients can be chosen to incorporate prior knowledge
 about the process; for example, that the number of visits will increase
@@ -274,7 +274,7 @@ supported.
 We will write
 
 $$
- \\textrm{hcc_conds}\_i \\sim \\textrm{Poisson}(\\mu_i) \\\\
+ \textrm{hcc\_conds}_i  \sim \textrm{Poisson}(\mu_i)
 $$
 
 to indicate that the number of hcc conditions `hcc_conds` is distributed
@@ -336,8 +336,8 @@ parameters to play with, one that can adjust for the spread/variation of
 the data, and also uses the log link function. So we will write
 
 $$
-   \\textrm{hcc_conds}\_i \\sim \\textrm{NB}(\\mu_i, \\phi) \\\\
-   \\log \\mu_i = \\alpha
+   \textrm{hcc\_conds}_i \sim \textrm{NB}(\mu_i, \phi) \\
+   \log \mu_i = \alpha
 $$
 We run the model and find
 
@@ -420,10 +420,10 @@ predictors. We will see how this is done.
 
 The model is
 $$
-\\begin{align\*}
-\\textrm{visits}\_i & \\sim \\textrm{Poisson}(\\mu\_{i}) \\\\
-\\log \\mu\_{i} & = \\alpha +\\beta \\times \\textrm{hcc_count}\_i \\\\
-\\end{align\*}
+\begin{align*}
+\textrm{visits}_i & \sim \textrm{Poisson}(\mu_{i}) \\
+\log \mu_{i} & = \alpha +\beta \times \textrm{hcc\_count}_i \\
+\end{align*}
 $$
 
 Here are the results.
@@ -451,7 +451,7 @@ likelihood that a person with 10 `hcc_conds` has more than 4 visits, to
 that of a person with 5 hcc’s.
 
 $$
-\\frac{P(\\rm{vists} > 4 \| \\rm{hcc} = 10)}{P(\\rm{vists} > 4 \| \\rm{hcc} = 5)}
+\frac{P(\rm{vists} > 4 | \rm{hcc} = 10)}{P(\rm{vists} > 4 | \rm{hcc} = 5)}
 $$
 
 We simulate 2000 samples of each and compare the proportion of the
@@ -487,10 +487,10 @@ correlation with the outcome.
 We try the negative binomial model
 
 $$
-\\begin{align\*}
-\\textrm{visits}\_i & \\sim \\textrm{NB}(\\mu\_{i}, \\phi) \\\\
-\\log \\mu\_{i} & = \\alpha +\\beta \\times \\textrm{hcc_count}\_i \\\\
-\\end{align\*}
+\begin{align*}
+\textrm{visits}_i & \sim \textrm{NB}(\mu_{i}, \phi) \\
+\log \mu_{i} & = \alpha +\beta \times \textrm{hcc\_count}_i \\
+\end{align*}
 $$
 
 We find the summary results for the coefficients consistent with those
@@ -551,10 +551,10 @@ sense.
 We will again try the Poisson model, which is now
 
 $$
-\\begin{align\*}
-\\textrm{visits}\_i & \\sim \\textrm{Poisson}(\\mu\_{i}) \\\\
-\\log \\mu\_{i} & = \\alpha +\\beta\_{hcc} \\times \\textrm{hcc_count}\_i +\\beta\_{ibis} \\times \\textrm{ibis}\_i \\\\
-\\end{align\*}
+\begin{align*}
+\textrm{visits}_i & \sim \textrm{Poisson}(\mu_{i}) \\
+\log \mu_{i} & = \alpha +\beta_{hcc} \times \textrm{hcc\_count}_i +\beta_{ibis} \times \textrm{ibis}_i \\
+\end{align*}
 $$
 
 where ibis<sub>*i*</sub> is a 0/1 indicator variable. The model thus has
@@ -613,7 +613,7 @@ or not using ibis, with 5 hcc conditions.
 We can see that after three visits the non users dominate. We can
 quantify this with the likelihood ratio
 $$
-\\frac{P(\\rm{vists} > 3 \| \\rm{hcc} = 5, \\rm{ibis} = no)}{P(\\rm{vists} > 3 \| \\rm{hcc} = 5, \\rm{ibis} = yes)}
+\frac{P(\rm{vists} > 3 | \rm{hcc} = 5, \rm{ibis} = no)}{P(\rm{vists} > 3 | \rm{hcc} = 5, \rm{ibis} = yes)}
 $$
 and find this is
 
@@ -677,10 +677,10 @@ The above does not address the following
     *j* the model might look like
 
 $$
-\\begin{align\*}
-\\textrm{visits}\_i & \\sim \\textrm{Poisson}(\\mu\_{i}) \\\\
-\\log \\mu\_{i,j} & = \\alpha_j +\\beta\_{hcc, j} \\times \\textrm{hcc_count}\_i +\\beta\_{ibis, j} \\times \\textrm{ibis}\_i \\\\
-\\end{align\*}
+\begin{align*}
+\textrm{visits}_i & \sim \textrm{Poisson}(\mu_{i}) \\
+\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times \textrm{hcc\_count}_i +\beta_{ibis, j} \times \textrm{ibis}_i \\
+\end{align*}
 $$
 
 -   Dealing with non-existence of zeros in the data.
