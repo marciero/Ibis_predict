@@ -691,7 +691,7 @@ The above does not address the following
 $$
 \begin{align*}
 visits_i & \sim {Poisson}(\mu_{i}) \\
-\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times {\rm{hcc\_count}}_i +\beta_{ibis, j} \times ibis_i
+\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times {\rm{hcc}}\_ {\rm{count}}_i +\beta_{ibis, j} \times ibis_i
 \end{align*}
 $$
 
