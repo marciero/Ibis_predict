@@ -689,7 +689,10 @@ The above does not address the following
     *j* the model might look like
 
 $$
-\log \mu_{i,j}  = \alpha_j +\beta_{hcc, j} \times {\rm{hcc}} \  \rm{count}_i  + \beta_{ibis, j} \times ibis_i
+\begin{align*}
+visits_i & \sim {Poisson}(\mu_{i}) \\
+\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times {\rm{hcc}} \  \rm{count}_i  +\beta_{ibis, j} \times ibis_i
+\end{align*}
 $$
 
 -   Dealing with non-existence of zeros in the data.
