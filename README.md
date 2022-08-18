@@ -498,8 +498,8 @@ We try the negative binomial model
 
 $$
 \begin{align*}
-{visits}_i & \sim {NB}(\mu_{i}, \phi) \\
-\log \mu_{i} & = \alpha +\beta \times {hcc\_count}_i \\
+visits_i & \sim {NB}(\mu_{i}, \phi) \\
+\log \mu_{i} & = \alpha +\beta \times hcc\_count_i \\
 \end{align*}
 $$
 
@@ -562,8 +562,8 @@ We will again try the Poisson model, which is now
 
 $$
 \begin{align*}
-{visits}_i & \sim {Poisson}(\mu_{i}) \\
-\log \mu_{i} & = \alpha +\beta_{hcc} \times {hcc\_count}_i +\beta_{ibis} \times {ibis}_i 
+visits_i & \sim {Poisson}(\mu_i) \\
+\log \mu_{i} & = \alpha +\beta_{hcc} \times hcc\_count_i +\beta_{ibis} \times ibis_i 
 \end{align*}
 $$
 
