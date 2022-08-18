@@ -690,8 +690,8 @@ The above does not address the following
 
 $$
 \begin{align*}
-{visits}_i & \sim {Poisson}(\mu_{i}) \\
-\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times {hcc\_count}_i +\beta_{ibis, j} \times {ibis}_i
+visits_i & \sim {Poisson}(\mu_{i}) \\
+\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times hcc\_count_i +\beta_{ibis, j} \times ibis_i
 \end{align*}
 $$
 
