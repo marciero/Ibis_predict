@@ -181,7 +181,7 @@ $$
 $$
 
 Where the index *i* represents the age and gender of the
-*i*<sup>*t**h*</sup> patient in the data record. One typically codes
+$i^{th}$ patient in the data record. One typically codes
 categorical variables with a small number of levels as a “dummy”
 indicator variables.
 
@@ -203,9 +203,12 @@ many ways to model a given process. For example we can define model
 coefficients for each gender *j*.
 
 $$
-\log \mu_{i,j} = \alpha_{j} + \beta_{1,j} \times \{age}_i  \\
-\log \mu_{i,j} = \alpha_0 + \alpha_{j} + (\beta_{0} + \beta_{1,j}) \times {age}_i
+\begin{align*}
+\log \mu_{i,j} & =  \alpha_{j} + \beta_{1,j} \times {age}_i \\
+\log \mu_{i,j} & = \alpha_0 + \alpha_{j} + (\beta_{0} + \beta_{1,j}) \times {age}_i
+\end{align*}
 $$
+
 
 These would appropriate if the amount of increase of `hcc_count` with
 `age` appeared to depend on `gender`. The first model essentially models
@@ -236,6 +239,7 @@ from the Poisson distribution above, now with the dependence on *θ*-in
 our case (*α*,*β*) - made explicit. The denominator is essentially a
 normalization constant which results from integration over the
 multidimensional parameter space, and it is conventional to write
+
 $$p(θ|x) \propto p(θ)p(x|θ)$$
 
 Priors on coefficients can be chosen to incorporate prior knowledge
@@ -340,9 +344,10 @@ parameters to play with, one that can adjust for the spread/variation of
 the data, and also uses the log link function. So we will write
 
 $$
-   \textrm{hcc\_conds}_i \sim \textrm{NB}(\mu_i, \phi) \\
+   {hcc\_conds}_i \sim {NB}(\mu_i, \phi) \\
    \log \mu_i = \alpha
 $$
+
 We run the model and find
 
     # A tibble: 3 × 3
@@ -423,10 +428,11 @@ examining the posterior distribution at different levels of the
 predictors. We will see how this is done.
 
 The model is
+
 $$
 \begin{align*}
-\textrm{visits}_i & \sim \textrm{Poisson}(\mu_{i}) \\
-\log \mu_{i} & = \alpha +\beta \times \textrm{hcc\_count}_i \\
+{visits}_i & \sim {Poisson}(\mu_{i}) \\
+\log \mu_{i} & = \alpha +\beta \times {hcc\_count}_i \\
 \end{align*}
 $$
 
@@ -455,7 +461,7 @@ likelihood that a person with 10 `hcc_conds` has more than 4 visits, to
 that of a person with 5 hcc’s.
 
 $$
-\frac{P(\rm{vists} > 4 | \rm{hcc} = 10)}{P(\rm{vists} > 4 | \rm{hcc} = 5)}
+\frac{P({vists} > 4 | {hcc} = 10)}{P({vists} > 4 | {hcc} = 5)}
 $$
 
 We simulate 2000 samples of each and compare the proportion of the
@@ -492,8 +498,8 @@ We try the negative binomial model
 
 $$
 \begin{align*}
-\textrm{visits}_i & \sim \textrm{NB}(\mu_{i}, \phi) \\
-\log \mu_{i} & = \alpha +\beta \times \textrm{hcc\_count}_i \\
+{visits}_i & \sim {NB}(\mu_{i}, \phi) \\
+\log \mu_{i} & = \alpha +\beta \times {hcc\_count}_i \\
 \end{align*}
 $$
 
@@ -556,8 +562,8 @@ We will again try the Poisson model, which is now
 
 $$
 \begin{align*}
-\textrm{visits}_i & \sim \textrm{Poisson}(\mu_{i}) \\
-\log \mu_{i} & = \alpha +\beta_{hcc} \times \textrm{hcc\_count}_i +\beta_{ibis} \times \textrm{ibis}_i \\
+{visits}_i & \sim {Poisson}(\mu_{i}) \\
+\log \mu_{i} & = \alpha +\beta_{hcc} \times {hcc\_count}_i +\beta_{ibis} \times {ibis}_i 
 \end{align*}
 $$
 
@@ -616,9 +622,11 @@ or not using ibis, with 5 hcc conditions.
 
 We can see that after three visits the non users dominate. We can
 quantify this with the likelihood ratio
+
 $$
-\frac{P(\rm{vists} > 3 | \rm{hcc} = 5, \rm{ibis} = no)}{P(\rm{vists} > 3 | \rm{hcc} = 5, \rm{ibis} = yes)}
+\frac{P({vists} > 3 | {hcc} = 5, {ibis} = no)}{P({vists} > 3 | {hcc} = 5, {ibis} = yes)}
 $$
+
 and find this is
 
 ``` r
@@ -682,8 +690,8 @@ The above does not address the following
 
 $$
 \begin{align*}
-\textrm{visits}_i & \sim \textrm{Poisson}(\mu_{i}) \\
-\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times \textrm{hcc\_count}_i +\beta_{ibis, j} \times \textrm{ibis}_i \\
+{visits}_i & \sim {Poisson}(\mu_{i}) \\
+\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times {hcc\_count}_i +\beta_{ibis, j} \times {ibis}_i
 \end{align*}
 $$
 
