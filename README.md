@@ -282,7 +282,7 @@ supported.
 We will write
 
 $$
- {hcc\_conds}_i  \sim {Poisson}(\mu_i)
+ {hcc\_ conds}_i  \sim {Poisson}(\mu_i)
 $$
 
 to indicate that the number of hcc conditions `hcc_conds` is distributed
@@ -344,7 +344,7 @@ parameters to play with, one that can adjust for the spread/variation of
 the data, and also uses the log link function. So we will write
 
 $$
-   {hcc\_conds}_i \sim {NB}(\mu_i, \phi) \\
+   {hcc\_  conds}_i \sim {NB}(\mu_i, \phi) \\
    \log \mu_i = \alpha
 $$
 
@@ -432,7 +432,7 @@ The model is
 $$
 \begin{align*}
 {visits}_i & \sim {Poisson}(\mu_{i}) \\
-\log \mu_{i} & = \alpha +\beta \times {hcc\_count}_i \\
+\log \mu_{i} & = \alpha +\beta \times {hcc\_  count}_i \\
 \end{align*}
 $$
 
@@ -499,7 +499,7 @@ We try the negative binomial model
 $$
 \begin{align*}
 visits_i & \sim {NB}(\mu_{i}, \phi) \\
-\log \mu_{i} & = \alpha +\beta \times hcc\_count_i \\
+\log \mu_{i} & = \alpha +\beta \times hcc\_  count_i \\
 \end{align*}
 $$
 
@@ -563,7 +563,7 @@ We will again try the Poisson model, which is now
 $$
 \begin{align*}
 visits_i & \sim {Poisson}(\mu_i) \\
-\log \mu_{i} & = \alpha +\beta_{hcc} \times hcc\_count_i +\beta_{ibis} \times ibis_i 
+\log \mu_{i} & = \alpha +\beta_{hcc} \times hcc\_ count_i +\beta_{ibis} \times ibis_i 
 \end{align*}
 $$
 
@@ -691,7 +691,7 @@ The above does not address the following
 $$
 \begin{align*}
 visits_i & \sim {Poisson}(\mu_{i}) \\
-\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times hcc\_count_i +\beta_{ibis, j} \times ibis_i
+\log \mu_{i,j} & = \alpha_j +\beta_{hcc, j} \times hcc\_  count_i +\beta_{ibis, j} \times ibis_i
 \end{align*}
 $$
 
